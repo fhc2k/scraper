@@ -13,7 +13,9 @@ const APIDocs = () => {
     setTimeout(() => setCopied(null), 2000);
   };
 
-  const curlExample = `curl -X GET "https://tu-dominio.com/api/cep?\\
+  const API_URL = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+
+  const curlExample = `curl -X GET "${API_URL}/api/cep?\\
   fecha=06-04-2026&\\
   referencia=1234567&\\
   emisor=40012&\\
@@ -44,7 +46,7 @@ params = {
     "monto": "1500.00"
 }
 
-response = requests.get("https://tu-dominio.com/api/cep", params=params)
+response = requests.get("${API_URL}/api/cep", params=params)
 print(response.json())`;
 
   const responseExample = `{

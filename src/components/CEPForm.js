@@ -61,13 +61,16 @@ const CEPForm = ({ onSubmit }) => {
     }
   };
 
+  // If backend config is explicitly defined via NEXT_PUBLIC_ flag, we hide this from the user
+  const hasServerProvider = process.env.NEXT_PUBLIC_HAS_SERVER_CAPTCHA === 'true';
+
   const [showCaptchaConfig, setShowCaptchaConfig] = useState(false);
   const [captchaProvider, setCaptchaProvider] = useState('manual');
   const [captchaApiKey, setCaptchaApiKey] = useState('');
 
   const onFormSubmit = (data) => {
-    // Validate: if a provider is selected, API key is required
-    if (captchaProvider !== 'manual' && !captchaApiKey.trim()) {
+    // Only enforce validation if the UI block is active
+    if (!hasServerProvider && captchaProvider !== 'manual' && !captchaApiKey.trim()) {
       setShowCaptchaConfig(true);
       toast.error('API Key requerida', {
         description: `Ingresa tu API key de ${captchaProvider} o selecciona el modo Manual.`,
@@ -81,8 +84,11 @@ const CEPForm = ({ onSubmit }) => {
       fecha: `${d}-${m}-${y}`,
       cuentaBeneficiaria: data.cuentaBeneficiaria.replace(/\s/g, ''),
       monto: data.monto.replace(/,/g, ''),
-      captchaProvider,
-      ...(captchaApiKey ? { captchaApiKey } : {}),
+      // Only inject UI keys if the server doesn't override it centrally
+      ...(!hasServerProvider ? {
+        captchaProvider,
+        ...(captchaApiKey ? { captchaApiKey } : {}),
+      } : {})
     };
     onSubmit(formattedData);
   };
@@ -270,82 +276,81 @@ const CEPForm = ({ onSubmit }) => {
           </div>
         </div>
 
-        {/* CAPTCHA Config */}
-        <div className="border border-white/5 rounded-xl overflow-hidden">
-          <button
-            type="button"
-            onClick={() => setShowCaptchaConfig(!showCaptchaConfig)}
-            className="w-full flex items-center justify-between p-3 sm:p-4 text-left hover:bg-white/5 transition-colors group"
-          >
-            <div className="flex items-center gap-2.5">
-              <Settings2 size={16} className="text-gray-500 group-hover:text-blue-400 transition-colors" />
-              <div>
-                <span className="text-xs font-bold text-gray-400">Configuración CAPTCHA</span>
-                <span className="text-[10px] text-gray-600 ml-2">
-                  {captchaProvider === 'manual' ? '(Manual — sin API key)' : `(${captchaProvider})`}
-                </span>
-              </div>
-            </div>
-            <ChevronDown size={14} className={`text-gray-600 transition-transform duration-200 ${showCaptchaConfig ? 'rotate-180' : ''}`} />
-          </button>
-
-          {showCaptchaConfig && (
-            <div className="px-3 sm:px-4 pb-4 space-y-3 animate-in fade-in slide-in-from-top-2 duration-200">
-              {/* Info badge */}
-              <div className="p-3 rounded-lg bg-blue-500/5 border border-blue-500/10">
-                <p className="text-[11px] text-blue-300/80 leading-relaxed">
-                  <strong className="text-blue-400">Modo Manual (por defecto):</strong> Se abre un navegador, se llena el formulario automáticamente y tú resuelves el CAPTCHA visualmente.
-                  Si tienes una API key de un servicio de resolución, ingrésala abajo para automatización completa.
-                </p>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                {/* Provider */}
+        {/* CAPTCHA Config (Conditionally Hidden) */}
+        {!hasServerProvider && (
+          <div className="border border-white/5 rounded-xl overflow-hidden">
+            <button
+              type="button"
+              onClick={() => setShowCaptchaConfig(!showCaptchaConfig)}
+              className="w-full flex items-center justify-between p-3 sm:p-4 text-left hover:bg-white/5 transition-colors group"
+            >
+              <div className="flex items-center gap-2.5">
+                <Settings2 size={16} className="text-gray-500 group-hover:text-blue-400 transition-colors" />
                 <div>
-                  <label className="block text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1.5 ml-1">Proveedor</label>
-                  <div className="relative">
-                    <Bot size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" />
-                    <select
-                      value={captchaProvider}
-                      onChange={(e) => setCaptchaProvider(e.target.value)}
-                      className="w-full pl-9 pr-4 py-2.5 bg-white/5 border border-white/10 rounded-lg text-xs text-white outline-none focus:ring-1 focus:ring-blue-500 appearance-none transition-all hover:bg-white/10"
-                      style={{ colorScheme: 'dark' }}
-                    >
-                      <option value="manual" className="bg-[#0a0a0a]">Manual (gratis)</option>
-                      <option value="freecaptchabypass" className="bg-[#0a0a0a]">FreeCaptchaBypass</option>
-                      <option value="nextcaptcha" className="bg-[#0a0a0a]">NextCaptcha</option>
-                      <option value="capmonster" className="bg-[#0a0a0a]">CapMonster</option>
-                      <option value="2captcha" className="bg-[#0a0a0a]">2Captcha</option>
-                    </select>
+                  <span className="text-xs font-bold text-gray-400">Configuración CAPTCHA</span>
+                  <span className="text-[10px] text-gray-600 ml-2">
+                    {captchaProvider === 'manual' ? '(Manual — sin API key)' : `(${captchaProvider})`}
+                  </span>
+                </div>
+              </div>
+              <ChevronDown size={14} className={`text-gray-600 transition-transform duration-200 ${showCaptchaConfig ? 'rotate-180' : ''}`} />
+            </button>
+
+            {showCaptchaConfig && (
+              <div className="px-3 sm:px-4 pb-4 space-y-3 animate-in fade-in slide-in-from-top-2 duration-200">
+                <div className="p-3 rounded-lg bg-blue-500/5 border border-blue-500/10">
+                  <p className="text-[11px] text-blue-300/80 leading-relaxed">
+                    <strong className="text-blue-400">Modo Manual (por defecto):</strong> Se abre un navegador, se llena el formulario automáticamente y tú resuelves el CAPTCHA visualmente.
+                    Si tienes una API key de un servicio de resolución, ingrésala abajo para automatización completa.
+                  </p>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1.5 ml-1">Proveedor</label>
+                    <div className="relative">
+                      <Bot size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" />
+                      <select
+                        value={captchaProvider}
+                        onChange={(e) => setCaptchaProvider(e.target.value)}
+                        className="w-full pl-9 pr-4 py-2.5 bg-white/5 border border-white/10 rounded-lg text-xs text-white outline-none focus:ring-1 focus:ring-blue-500 appearance-none transition-all hover:bg-white/10"
+                        style={{ colorScheme: 'dark' }}
+                      >
+                        <option value="manual" className="bg-[#0a0a0a]">Manual (gratis)</option>
+                        <option value="freecaptchabypass" className="bg-[#0a0a0a]">FreeCaptchaBypass</option>
+                        <option value="nextcaptcha" className="bg-[#0a0a0a]">NextCaptcha</option>
+                        <option value="capmonster" className="bg-[#0a0a0a]">CapMonster</option>
+                        <option value="2captcha" className="bg-[#0a0a0a]">2Captcha</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1.5 ml-1">API Key</label>
+                    <div className="relative">
+                      <Key size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" />
+                      <input
+                        type="password"
+                        value={captchaApiKey}
+                        onChange={(e) => setCaptchaApiKey(e.target.value)}
+                        disabled={captchaProvider === 'manual'}
+                        placeholder={captchaProvider === 'manual' ? 'No requerida' : 'Tu API key...'}
+                        className="w-full pl-9 pr-4 py-2.5 bg-white/5 border border-white/10 rounded-lg text-xs text-white outline-none focus:ring-1 focus:ring-blue-500 placeholder-gray-600 disabled:opacity-40 disabled:cursor-not-allowed transition-all hover:bg-white/10"
+                      />
+                    </div>
                   </div>
                 </div>
 
-                {/* API Key */}
-                <div>
-                  <label className="block text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1.5 ml-1">API Key</label>
-                  <div className="relative">
-                    <Key size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" />
-                    <input
-                      type="password"
-                      value={captchaApiKey}
-                      onChange={(e) => setCaptchaApiKey(e.target.value)}
-                      disabled={captchaProvider === 'manual'}
-                      placeholder={captchaProvider === 'manual' ? 'No requerida' : 'Tu API key...'}
-                      className="w-full pl-9 pr-4 py-2.5 bg-white/5 border border-white/10 rounded-lg text-xs text-white outline-none focus:ring-1 focus:ring-blue-500 placeholder-gray-600 disabled:opacity-40 disabled:cursor-not-allowed transition-all hover:bg-white/10"
-                    />
-                  </div>
-                </div>
+                {captchaProvider !== 'manual' && !captchaApiKey && (
+                  <p className="text-[10px] text-amber-400/70 flex items-center gap-1 ml-1">
+                    <AlertCircle size={10} />
+                    Ingresa tu API key o se usará el modo manual
+                  </p>
+                )}
               </div>
-
-              {captchaProvider !== 'manual' && !captchaApiKey && (
-                <p className="text-[10px] text-amber-400/70 flex items-center gap-1 ml-1">
-                  <AlertCircle size={10} />
-                  Ingresa tu API key o se usará el modo manual
-                </p>
-              )}
-            </div>
-          )}
-        </div>
+            )}
+          </div>
+        )}
 
         <div className="pt-2 sm:pt-4">
           <button

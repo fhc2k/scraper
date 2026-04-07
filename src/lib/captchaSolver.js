@@ -244,35 +244,33 @@ class ManualProvider extends CaptchaSolverProvider {
  * 4. Fallback to manual
  */
 export function createCaptchaSolver(override = {}) {
-	// ── 1. UI override always wins ────────────────────────────
+	const providerEnv = process.env.CAPTCHA_PROVIDER?.toLowerCase();
+	const twoCaptchaKey = process.env.TWOCAPTCHA_API_KEY;
+	const capMonsterKey = process.env.CAPMONSTER_API_KEY;
+	const nextCaptchaKey = process.env.NEXTCAPTCHA_API_KEY;
+	const fcbKey = process.env.FREECAPTCHABYPASS_API_KEY;
+
+	// ── 1. .env config wins if present ──────────────────────────
+	if (providerEnv) {
+		if (providerEnv === 'manual') return new ManualProvider();
+		if (providerEnv === '2captcha' && twoCaptchaKey) return new TwoCaptchaProvider(twoCaptchaKey);
+		if (providerEnv === 'capmonster' && capMonsterKey) return new CapMonsterProvider(capMonsterKey);
+		if (providerEnv === 'nextcaptcha' && nextCaptchaKey) return new NextCaptchaProvider(nextCaptchaKey);
+		if (providerEnv === 'freecaptchabypass' && fcbKey) return new FreeCaptchaBypassProvider(fcbKey);
+	}
+
+	// ── 2. Fall back to UI override ────────────────────────────
 	if (override.provider) {
-		if (override.provider === 'manual') {
-			return new ManualProvider();
-		}
+		if (override.provider === 'manual') return new ManualProvider();
 		if (override.apiKey) {
 			if (override.provider === '2captcha') return new TwoCaptchaProvider(override.apiKey);
 			if (override.provider === 'capmonster') return new CapMonsterProvider(override.apiKey);
 			if (override.provider === 'nextcaptcha') return new NextCaptchaProvider(override.apiKey);
 			if (override.provider === 'freecaptchabypass') return new FreeCaptchaBypassProvider(override.apiKey);
 		}
-		// Provider selected but no key → manual
-		return new ManualProvider();
 	}
 
-	// ── 2. Fall back to .env config ──────────────────────────
-	const provider = process.env.CAPTCHA_PROVIDER?.toLowerCase();
-	const twoCaptchaKey = process.env.TWOCAPTCHA_API_KEY;
-	const capMonsterKey = process.env.CAPMONSTER_API_KEY;
-	const nextCaptchaKey = process.env.NEXTCAPTCHA_API_KEY;
-	const fcbKey = process.env.FREECAPTCHABYPASS_API_KEY;
-
-	if (provider === '2captcha' && twoCaptchaKey) return new TwoCaptchaProvider(twoCaptchaKey);
-	if (provider === 'capmonster' && capMonsterKey) return new CapMonsterProvider(capMonsterKey);
-	if (provider === 'nextcaptcha' && nextCaptchaKey) return new NextCaptchaProvider(nextCaptchaKey);
-	if (provider === 'freecaptchabypass' && fcbKey) return new FreeCaptchaBypassProvider(fcbKey);
-	if (provider === 'manual') return new ManualProvider();
-
-	// Auto-detect
+	// ── 3. Auto-detect keys if no strict provider was defined ──
 	if (nextCaptchaKey) return new NextCaptchaProvider(nextCaptchaKey);
 	if (capMonsterKey) return new CapMonsterProvider(capMonsterKey);
 	if (twoCaptchaKey) return new TwoCaptchaProvider(twoCaptchaKey);

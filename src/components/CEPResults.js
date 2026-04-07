@@ -353,8 +353,9 @@ const CEPResults = ({ data, onBack }) => {
               ))}
             </div>
           </div>
-
-          {/* Verification QR Card */}
+          
+          {/* Verification QR Card (Disabled por ahora) */}
+          {/*
           <div className="bg-gradient-to-br from-blue-600 to-indigo-800 rounded-2xl sm:rounded-[2rem] p-6 sm:p-8 shadow-xl shadow-blue-900/20 text-center relative overflow-hidden group">
             <div className="relative z-10">
               <p className="text-[10px] font-bold text-white/60 uppercase tracking-[0.2em] mb-3 sm:mb-4">Verificación Rápida</p>
@@ -371,12 +372,12 @@ const CEPResults = ({ data, onBack }) => {
               <p className="text-[10px] text-white/50 mt-2 sm:mt-3 font-mono break-all">ID: {data.id_transaccion}</p>
             </div>
 
-            {/* Decorative Elements */}
             <div className="absolute top-0 left-0 w-full h-full opacity-10 pointer-events-none">
               <div className="absolute top-10 left-10 w-20 h-20 border border-white rounded-full" />
               <div className="absolute bottom-10 right-10 w-32 h-32 border-4 border-white rounded-full" />
             </div>
           </div>
+          */}
         </div>
 
       </div>
