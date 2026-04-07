@@ -35,7 +35,15 @@ const Footer = () => {
 
                     {/* Right */}
                     <p className="text-[11px] text-gray-600 font-medium">
-                        © {currentYear}
+                        © {currentYear} · Desarrollado por{" "}
+                        <a 
+                            href="https://portfolio.fhc.ink/" 
+                            target="_blank" 
+                            rel="noopener noreferrer"
+                            className="text-blue-500 hover:text-blue-400 transition-colors underline underline-offset-2"
+                        >
+                            FHC
+                        </a>
                     </p>
                 </div>
 

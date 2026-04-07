@@ -25,6 +25,26 @@ export async function GET(request) {
 			}, { status: 401 });
 		}
 
+		const fingerprintQuery = searchParams.get('cep');
+		if (fingerprintQuery) {
+			const { findCEPByFingerprint } = await import('@/lib/db');
+			const data = await findCEPByFingerprint(fingerprintQuery);
+			if (data) {
+				data.syncStatus = 'enlace compartido';
+				return NextResponse.json({
+					success: true,
+					message: 'CEP recuperado (Shared Link)',
+					data,
+					isCached: true
+				}, { status: 200 });
+			} else {
+				return NextResponse.json({
+					success: false,
+					message: 'El comprobante solicitado no existe o ha expirado.'
+				}, { status: 404 });
+			}
+		}
+
 		const queryData = {
 			fecha: searchParams.get('fecha'),
 			referencia: searchParams.get('referencia'),
@@ -126,14 +146,6 @@ export async function GET(request) {
 				responseData = scraperResult.data;
 				responseData.syncStatus = queryData._isResync ? 'sincronización' : 'consulta inicial';
 
-				// ── PHASE 3: Save to DB ──
-				try {
-					const { saveCEP } = await import('@/lib/db');
-					await saveCEP({ ...responseData, ...queryData });
-				} catch (saveError) {
-					console.warn('[API] Failed to save CEP to database:', saveError.message);
-				}
-
 			} else {
 				// Mock fallback for development
 				await new Promise(resolve => setTimeout(resolve, 800));
@@ -148,6 +160,17 @@ export async function GET(request) {
 					isMock: true,
 					syncStatus: queryData._isResync ? 'sincronización' : 'consulta inicial'
 				};
+			}
+
+			// ── PHASE 3: Save to DB and attach fingerprint to Response ──
+			try {
+				const { saveCEP, generateFingerprint } = await import('@/lib/db');
+				const fullData = { ...responseData, ...queryData };
+				responseData.fingerprint = generateFingerprint(fullData);
+				// Save async without blocking
+				saveCEP(fullData).catch(err => console.warn('[API] Failed to save CEP to database:', err.message));
+			} catch (saveError) {
+				console.warn('[API] Database subsystem unavailable:', saveError.message);
 			}
 		} catch (scraperError) {
 			console.error('Processing Error:', scraperError);

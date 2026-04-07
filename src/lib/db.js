@@ -23,7 +23,6 @@ if (!cached) {
 }
 
 async function dbConnect() {
-    s;
     if (cached.conn) {
         return cached.conn;
     }
@@ -58,6 +57,33 @@ async function dbConnect() {
 export function generateFingerprint(query) {
     const dataStr = `${query.fecha}|${query.monto.toString()}|${query.referencia}|${query.cuentaBeneficiaria}|${query.emisor}|${query.receptor}`;
     return crypto.createHash("sha256").update(dataStr).digest("hex");
+}
+
+/**
+ * Finds an existing CEP strictly by fingerprint (useful for shared URLs).
+ */
+export async function findCEPByFingerprint(fingerprint) {
+    try {
+        await dbConnect();
+        
+        if (redisClient) {
+            try {
+                const cachedStr = await redisClient.get(`cep_cache:${fingerprint}`);
+                if (cachedStr) {
+                    console.log("[DB] ⚡ Redis Ultra-Fast Cache Hit by Fingerprint!");
+                    return JSON.parse(cachedStr);
+                }
+            } catch (e) {
+                console.warn("[REDIS] Cache read failed:", e.message);
+            }
+        }
+
+        const existing = await CepQuery.findOne({ fingerprint }).lean();
+        return existing;
+    } catch (e) {
+        console.error("[DB] Error finding CEP by fingerprint:", e);
+        return null;
+    }
 }
 
 /**

@@ -25,19 +25,20 @@ Implementación de un sistema **Opt-In** para B2B. Si envías la variable `webho
 *   El trabajo se delegará a **BullMQ** (Colas de Redis), que despachará la solicitud en segundo plano.
 *   Si Banxico falla, el **Worker implementa Backoff Exponencial**, reintentando la tarea un máximo de 3 veces (esperando 10s, 20s y 40s) para sobrevivir a caídas y entregar el Payload al cliente final sin perder el trabajo si ocurre un Server Crash.
 
-### 3. Seguridad Perimetral y Limitadores (Rate Limiting) 🛡️
+### 3. Seguridad y UX Avanzada 👮
 *   **API Keys:** El endpoint principal está protegido por variables de entorno requiriendo `x-api-key` headers para prevenir uso no autorizado B2B.
-*   **Rate Limiter:** Limitador de memoria de IPs (max 10 peticiones por minuto por IP) con degradación elegante de Redis Distribuido a Mapas Locales de Node.js en caso de desconexión.
-*   **Privacidad (Local Storage):** El Dashboard principal implementa almacenamiento en el navegador, asegurando que el Historial de CEPs sea completamente privado por usuario/sesión sin requerir un complejo servidor de Auth.
+*   **Rate Limiter:** Limitador de memoria de IPs (max 10 peticiones por minuto por IP) con degradación elegante.
+*   **Shareable Links (Deep Linking):** Sistema reactivo que inyecta parámetros en la URL (`?cep=...`), permitiendo compartir resultados específicos de forma directa.
+*   **Scroll Mantequilla (Lenis):** Implementación de Scroll Inercial de alto rendimiento para una experiencia de navegación "butter-smooth" de nivel premium.
+*   **Privacidad:** Historial almacenado en `localStorage`, garantizando privacidad total del usuario.
 
 ---
 
 ## 🛠️ Tecnologías Principales
-*   **Frontend:** Next.js 14 (App Router), React, Tailwind CSS, Framer Motion, Lucide Icons.
-*   **Backend:** Node.js, Mongoose (MongoDB).
-*   **Scraping:** Puppeteer Extra (Plugin Stealth para evadir bloqueos de robots).
-*   **Microservicios:** ioredis, BullMQ (Gestión de Colas).
-*   **Validación:** Yup, React Hook Form.
+*   **Frontend:** Next.js (Turbopack), React, Tailwind CSS, Framer Motion, Lenis (Smooth Scroll).
+*   **Backend:** Node.js, Mongoose (MongoDB), Redis.
+*   **Infraestructura:** BullMQ (Background Workers), Webhooks.
+*   **Tipografía:** Poppins Modern Geometric.
 
 ---
 

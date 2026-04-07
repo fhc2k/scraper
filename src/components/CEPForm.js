@@ -16,6 +16,7 @@ import {
 	Key,
 	Bot,
 	Settings2,
+	ShieldCheck,
 } from "lucide-react";
 import { MEXICAN_BANKS } from "@/lib/constants";
 import { cn } from "@/lib/utils";
@@ -111,7 +112,7 @@ const CEPForm = ({ onSubmit }) => {
 	}) => (
 		<div className="relative mb-6">
 			<label
-				className="block text-sm font-medium text-gray-400 mb-1 ml-1"
+				className="block text-[11px] font-bold text-gray-400 mb-1.5 ml-1 uppercase tracking-wider"
 				htmlFor={name}
 			>
 				{label}
@@ -119,13 +120,13 @@ const CEPForm = ({ onSubmit }) => {
 			<div className="relative group">
 				<div
 					className={cn(
-						"absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none transition-colors z-10",
+						"absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none transition-colors z-10",
 						errors[name]
 							? "text-red-500"
-							: "group-focus-within:text-blue-500 text-gray-500",
+							: "group-focus-within:text-blue-400 text-gray-500",
 					)}
 				>
-					<Icon size={18} />
+					<Icon size={18} strokeWidth={2} />
 				</div>
 				{children || (
 					<input
@@ -134,10 +135,10 @@ const CEPForm = ({ onSubmit }) => {
 						{...register(name)}
 						placeholder={placeholder}
 						className={cn(
-							"block w-full pl-10 pr-4 py-3 bg-white/5 border rounded-xl outline-none transition-all duration-300 backdrop-blur-md text-white placeholder-gray-500 hover:bg-white/10 appearance-none",
+							"block w-full pl-11 pr-4 py-3.5 bg-[#0f1115] border rounded-xl outline-none transition-all duration-300 text-white placeholder-gray-600 appearance-none shadow-sm",
 							errors[name]
-								? "border-red-500/50 focus:ring-2 focus:ring-red-500/50"
-								: "border-white/10 focus:ring-2 focus:ring-blue-500",
+								? "border-red-500/50 focus:bg-[#151010] focus:ring-4 focus:ring-red-500/10"
+								: "border-white/5 hover:border-white/10 focus:border-blue-500/50 focus:bg-[#13151a] focus:ring-4 focus:ring-blue-500/10",
 							type === "date" && "block",
 						)}
 						style={type === "date" ? { colorScheme: "dark" } : {}}
@@ -145,8 +146,8 @@ const CEPForm = ({ onSubmit }) => {
 				)}
 			</div>
 			{errors[name] && (
-				<p className="mt-1.5 ml-1 text-xs text-red-400 flex items-center gap-1 animate-in fade-in slide-in-from-top-1">
-					<AlertCircle size={12} />
+				<p className="mt-2 ml-1 text-[11px] font-medium text-red-400 flex items-center gap-1.5 animate-in fade-in slide-in-from-top-1">
+					<AlertCircle size={12} strokeWidth={2.5} />
 					{errors[name]?.message}
 				</p>
 			)}
@@ -154,22 +155,26 @@ const CEPForm = ({ onSubmit }) => {
 	);
 
 	return (
-		<div className="w-full bg-white/5 border border-white/10 rounded-2xl p-4 sm:p-6 lg:p-8 backdrop-blur-sm">
-			<div className="flex items-center justify-between mb-6 sm:mb-8 pb-4 sm:pb-6 border-b border-white/5">
+		<div className="w-full bg-[#0a0c10] border border-white/5 rounded-2xl p-5 sm:p-8 lg:p-10 shadow-[0_0_40px_rgba(0,0,0,0.3)] relative overflow-hidden">
+			{/* Subtle background glow */}
+			<div className="absolute top-0 left-1/2 -translate-x-1/2 w-full h-px bg-gradient-to-r from-transparent via-blue-500/20 to-transparent"></div>
+			<div className="absolute -top-40 -right-40 w-80 h-80 bg-blue-500/5 rounded-full blur-[80px] pointer-events-none"></div>
+
+			<div className="flex items-center justify-between mb-8 pb-6 border-b border-white/5 relative z-10">
 				<div>
-					<h2 className="text-lg sm:text-xl font-bold text-white tracking-tight">
-						Nueva Consulta de Pago
+					<h2 className="text-xl sm:text-2xl font-black tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-white via-white to-gray-400">
+						Validación CEP
 					</h2>
-					<p className="text-xs sm:text-sm text-gray-500 mt-1">
-						Completa los campos para validar el CEP
+					<p className="text-sm text-gray-500 mt-1.5 font-medium">
+						Sistema de Verificación Interbancaria en Tiempo Real
 					</p>
 				</div>
-				<div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-blue-500/10 flex items-center justify-center text-blue-500 border border-blue-500/10 flex-shrink-0">
-					<Hash size={20} />
+				<div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-blue-500/20 to-purple-500/20 flex items-center justify-center text-blue-400 border border-blue-500/20 shadow-inner flex-shrink-0">
+					<ShieldCheck size={24} strokeWidth={2} />
 				</div>
 			</div>
 
-			<form onSubmit={handleSubmit(onFormSubmit)} className="space-y-6">
+			<form onSubmit={handleSubmit(onFormSubmit)} className="space-y-6 relative z-10">
 				<div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-1">
 					<InputField
 						label="Fecha de Operación"
@@ -193,10 +198,10 @@ const CEPForm = ({ onSubmit }) => {
 								{...register("emisor")}
 								id="emisor"
 								className={cn(
-									"block w-full pl-10 pr-4 py-3 bg-white/5 border rounded-xl outline-none transition-all duration-300 backdrop-blur-md text-white placeholder-gray-500 hover:bg-white/10 appearance-none",
+									"block w-full pl-11 pr-4 py-3.5 bg-[#0f1115] border rounded-xl outline-none transition-all duration-300 text-white placeholder-gray-600 appearance-none shadow-sm",
 									errors.emisor
-										? "border-red-500/50 focus:ring-2 focus:ring-red-500/50"
-										: "border-white/10 focus:ring-2 focus:ring-blue-500",
+										? "border-red-500/50 focus:bg-[#151010] focus:ring-4 focus:ring-red-500/10"
+										: "border-white/5 hover:border-white/10 focus:border-blue-500/50 focus:bg-[#13151a] focus:ring-4 focus:ring-blue-500/10",
 								)}
 								style={{ colorScheme: "dark" }}
 							>
@@ -225,10 +230,10 @@ const CEPForm = ({ onSubmit }) => {
 								{...register("receptor")}
 								id="receptor"
 								className={cn(
-									"block w-full pl-10 pr-4 py-3 bg-white/5 border rounded-xl outline-none transition-all duration-300 backdrop-blur-md text-white placeholder-gray-500 hover:bg-white/10 appearance-none",
+									"block w-full pl-11 pr-4 py-3.5 bg-[#0f1115] border rounded-xl outline-none transition-all duration-300 text-white placeholder-gray-600 appearance-none shadow-sm",
 									errors.receptor
-										? "border-red-500/50 focus:ring-2 focus:ring-red-500/50"
-										: "border-white/10 focus:ring-2 focus:ring-blue-500",
+										? "border-red-500/50 focus:bg-[#151010] focus:ring-4 focus:ring-red-500/10"
+										: "border-white/5 hover:border-white/10 focus:border-blue-500/50 focus:bg-[#13151a] focus:ring-4 focus:ring-blue-500/10",
 								)}
 								style={{ colorScheme: "dark" }}
 							>
@@ -269,10 +274,10 @@ const CEPForm = ({ onSubmit }) => {
 											field.onChange(formatted);
 										}}
 										className={cn(
-											"block w-full pl-10 pr-4 py-3 bg-white/5 border rounded-xl outline-none transition-all duration-300 backdrop-blur-md text-white placeholder-gray-500 hover:bg-white/10",
+											"block w-full pl-11 pr-4 py-3.5 bg-[#0f1115] border rounded-xl outline-none transition-all duration-300 text-white placeholder-gray-600 appearance-none shadow-sm font-mono tracking-wider",
 											errors.cuentaBeneficiaria
-												? "border-red-500/50 focus:ring-2 focus:ring-red-500/50"
-												: "border-white/10 focus:ring-2 focus:ring-blue-500",
+												? "border-red-500/50 focus:bg-[#151010] focus:ring-4 focus:ring-red-500/10"
+												: "border-white/5 hover:border-white/10 focus:border-blue-500/50 focus:bg-[#13151a] focus:ring-4 focus:ring-blue-500/10",
 										)}
 									/>
 								</InputField>
@@ -303,10 +308,10 @@ const CEPForm = ({ onSubmit }) => {
 												field.onChange(formatted);
 											}}
 											className={cn(
-												"block w-full pl-10 pr-12 py-3 bg-white/5 border rounded-xl outline-none transition-all duration-300 backdrop-blur-md text-white placeholder-gray-500 hover:bg-white/10",
+												"block w-full pl-11 pr-12 py-3.5 bg-[#0f1115] border rounded-xl outline-none transition-all duration-300 text-white placeholder-gray-600 appearance-none shadow-sm font-mono tracking-wider",
 												errors.monto
-													? "border-red-500/50 focus:ring-2 focus:ring-red-500/50"
-													: "border-white/10 focus:ring-2 focus:ring-blue-500",
+													? "border-red-500/50 focus:bg-[#151010] focus:ring-4 focus:ring-red-500/10"
+													: "border-white/5 hover:border-white/10 focus:border-blue-500/50 focus:bg-[#13151a] focus:ring-4 focus:ring-blue-500/10",
 											)}
 										/>
 										<div className="absolute inset-y-0 right-0 pr-4 flex items-center pointer-events-none text-gray-500 text-xs font-bold uppercase tracking-widest">
@@ -469,7 +474,7 @@ const CEPForm = ({ onSubmit }) => {
 					<button
 						type="submit"
 						disabled={isSubmitting}
-						className="w-full py-3.5 sm:py-4 px-6 bg-blue-600 hover:bg-blue-500 disabled:bg-blue-800 disabled:opacity-50 text-white text-sm sm:text-base font-bold rounded-xl flex items-center justify-center gap-2 transition-all transform active:scale-[0.98] shadow-[0_0_20px_rgba(59,130,246,0.3)]"
+						className="w-full py-4 px-6 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 disabled:from-blue-800/50 disabled:to-indigo-800/50 disabled:border-white/5 disabled:opacity-50 text-white text-sm sm:text-base font-bold rounded-xl flex items-center justify-center gap-2 transition-all transform active:scale-[0.98] shadow-[0_4px_15px_rgba(59,130,246,0.3)] hover:shadow-[0_6px_25px_rgba(79,70,229,0.4)] border border-white/10"
 					>
 						{isSubmitting ? "Procesando..." : "Validar Comprobante"}
 						<ChevronRight size={18} />
