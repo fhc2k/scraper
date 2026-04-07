@@ -19,10 +19,11 @@ export async function scrapeCEP(queryData, captchaConfig = {}) {
     const { default: StealthPlugin } = await import('puppeteer-extra-plugin-stealth');
 
     try {
-      const already = puppeteer.plugins && puppeteer.plugins.some(p => p.name === 'stealth');
-      if (!already) puppeteer.use(StealthPlugin());
+      // Use the plugin directly. In some ESM environments, StealthPlugin might be the function itself
+      const plugin = (StealthPlugin.default || StealthPlugin);
+      puppeteer.use(plugin());
     } catch (e) {
-      console.warn('Stealth plugin skipped:', e.message);
+      console.warn('Stealth plugin initialization note:', e.message);
     }
 
     // Initialize CAPTCHA solver — UI config overrides .env
@@ -38,9 +39,28 @@ export async function scrapeCEP(queryData, captchaConfig = {}) {
     const page = await browser.newPage();
     await page.setViewport({ width: 1280, height: 900 });
 
+    // ── OPTIMIZATION: Request Interception (Safe version) ──
+    // Block only analytics/trackers to avoid breaking page logic
+    await page.setRequestInterception(true);
+    page.on('request', (req) => {
+      const url = req.url();
+      if (
+        url.includes('google-analytics') || 
+        url.includes('doubleclick') || 
+        url.includes('facebook')
+      ) {
+        req.abort();
+      } else {
+        req.continue();
+      }
+    });
+
     // ── Step 1: Navigate ──
     console.log('[1/6] Navigating to Banxico...');
-    await page.goto('https://www.banxico.org.mx/cep/', { waitUntil: 'networkidle2' });
+    // 'load' is more stable for complex banking portals than 'domcontentloaded'
+    await page.goto('https://www.banxico.org.mx/cep/', { waitUntil: 'load', timeout: 60000 });
+    // Ensure the page is actually responsive before proceeding
+    await new Promise(r => setTimeout(r, 1000));
 
     // ── Step 2: Fill the Form ──
     console.log('[2/6] Filling form...');
@@ -80,7 +100,7 @@ export async function scrapeCEP(queryData, captchaConfig = {}) {
       const btn = document.querySelector('#btn_ReloadCaptcha');
       if (btn) btn.click();
     });
-    await new Promise(r => setTimeout(r, 1500));
+    await new Promise(r => setTimeout(r, 500));
 
     // ── Step 4: Solve CAPTCHA ──
     console.log('[4/6] Solving CAPTCHA...');
@@ -116,6 +136,14 @@ export async function scrapeCEP(queryData, captchaConfig = {}) {
       const btn = document.querySelector('#btn_Descargar');
       if (btn) btn.classList.remove('disabled');
     });
+    // Start listening for alerts BEFORE clicking (Banxico can throw synch alerts)
+    let dialogMessage = null;
+    page.once('dialog', async dialog => {
+      dialogMessage = dialog.message();
+      console.log(`[Banxico Alert] ${dialogMessage}`);
+      await dialog.accept();
+    });
+
     await page.click('#btn_Descargar');
 
     // ── Step 6: Wait for results or errors ──
@@ -123,13 +151,33 @@ export async function scrapeCEP(queryData, captchaConfig = {}) {
 
     const outcome = await Promise.race([
       page.waitForSelector('.msg-banxico .boton-descarga-xml', { timeout: 45000 }).then(() => 'success'),
+      page.waitForSelector('#consultaMISPEI .info', { visible: true, timeout: 45000 }).then(() => 'not_found'),
       page.waitForSelector('.mensajeError, .error, .alert-danger, #mensajeError', { visible: true, timeout: 45000 }).then(() => 'error'),
       page.waitForFunction(() => {
-        const dialog = document.querySelector('.ui-dialog:not([style*="display: none"])');
-        // Banxico sometimes shows errors in jQuery UI dialogs
-        return dialog && dialog.innerText && dialog.innerText.toLowerCase().includes('error');
+        const dialogEl = document.querySelector('.ui-dialog:not([style*="display: none"])');
+        return dialogEl && dialogEl.innerText && dialogEl.innerText.toLowerCase().includes('error');
       }, { timeout: 45000 }).then(() => 'dialog_error'),
+      new Promise(resolve => {
+        const interval = setInterval(() => {
+          if (dialogMessage) {
+            clearInterval(interval);
+            resolve('js_alert');
+          }
+        }, 500);
+      })
     ]).catch(() => 'timeout');
+
+    if (outcome === 'js_alert') {
+      return { success: false, error: dialogMessage || 'La información consultada no existe o el CAPTCHA es incorrecto.' };
+    }
+
+    if (outcome === 'not_found') {
+      const msg = await page.evaluate(() => {
+        const el = document.querySelector('#consultaMISPEI .info');
+        return el ? el.innerText.trim() : 'Operación no encontrada.';
+      });
+      return { success: false, error: msg };
+    }
 
     if (outcome === 'error' || outcome === 'dialog_error') {
       const errorMsg = await page.evaluate(() => {

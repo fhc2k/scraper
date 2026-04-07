@@ -22,26 +22,14 @@ const CEPForm = ({ onSubmit }) => {
       emisor: '90653',                    // KUSPIT
       receptor: '40012',                  // BBVA MEXICO
       cuentaBeneficiaria: '0121 8001 1439 3693 74',
-      monto: '50,000',
+      monto: '50000',
     }
   });
 
   const formatCurrency = (value) => {
     if (!value) return '';
-    // Strip everything except digits and decimal point
-    let v = value.replace(/[^0-9.]/g, '');
-
-    // Handle multiple decimal points
-    const parts = v.split('.');
-    if (parts.length > 2) v = parts[0] + '.' + parts.slice(1).join('');
-
-    // Limit to 2 decimal places
-    if (parts[1]) v = parts[0] + '.' + parts[1].slice(0, 2);
-
-    const [integer, decimal] = v.split('.');
-    const formattedInteger = integer.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
-
-    return decimal !== undefined ? `${formattedInteger}.${decimal}` : formattedInteger;
+    // Strip everything except digits
+    return value.replace(/[^0-9]/g, '');
   };
 
   const formatCLABE = (value) => {
@@ -83,7 +71,7 @@ const CEPForm = ({ onSubmit }) => {
       ...data,
       fecha: `${d}-${m}-${y}`,
       cuentaBeneficiaria: data.cuentaBeneficiaria.replace(/\s/g, ''),
-      monto: data.monto.replace(/,/g, ''),
+      monto: data.monto.replace(/[^0-9]/g, ''),
       // Only inject UI keys if the server doesn't override it centrally
       ...(!hasServerProvider ? {
         captchaProvider,

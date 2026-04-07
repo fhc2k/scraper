@@ -50,7 +50,7 @@ const CEPResults = ({ data, onBack }) => {
   }, []);
 
   const downloadOptions = [
-    { label: 'PDF Report', type: 'PDF', icon: FileText, color: 'text-red-400' },
+    { label: 'PDF', type: 'PDF', icon: FileText, color: 'text-red-400' },
     { label: 'XML Data', type: 'XML', icon: FileCode, color: 'text-amber-400' },
     { label: 'JSON Export', type: 'JSON', icon: FileJson, color: 'text-blue-400' },
   ];
@@ -77,7 +77,7 @@ const CEPResults = ({ data, onBack }) => {
       const array = new Uint8Array(new ArrayBuffer(binaryRaw.length));
       for (let i = 0; i < binaryRaw.length; i++) array[i] = binaryRaw.charCodeAt(i);
       const blob = new Blob([array], { type: 'application/pdf' });
-      
+
       const link = document.createElement('a');
       link.href = URL.createObjectURL(blob);
       link.download = `${baseFilename}.pdf`;
@@ -241,15 +241,7 @@ const CEPResults = ({ data, onBack }) => {
           <span className="sm:hidden">Volver</span>
         </button>
         <div className="flex items-center gap-2 sm:gap-3">
-          <button
-            onClick={handlePrint}
-            className="p-2 sm:p-2.5 rounded-xl bg-white/5 border border-white/5 hover:bg-white/10 text-gray-400 hover:text-white transition-all shadow-sm"
-          >
-            <Printer size={16} />
-          </button>
-          <button className="p-2 sm:p-2.5 rounded-xl bg-white/5 border border-white/5 hover:bg-white/10 text-gray-400 hover:text-white transition-all shadow-sm">
-            <Share2 size={16} />
-          </button>
+
         </div>
       </div>
 
@@ -317,9 +309,7 @@ const CEPResults = ({ data, onBack }) => {
               <div className="flex items-center gap-2 text-[8px] sm:text-[9px] text-gray-600 font-mono truncate">
                 HASH: {Array.from({ length: 16 }, () => Math.floor(Math.random() * 16).toString(16)).join('').toUpperCase()}
               </div>
-              <button className="text-[10px] font-bold text-blue-500 hover:text-blue-400 transition-colors uppercase tracking-widest flex items-center gap-1 flex-shrink-0">
-                Verificar <ExternalLink size={12} />
-              </button>
+
             </div>
           </div>
         </div>
@@ -334,8 +324,8 @@ const CEPResults = ({ data, onBack }) => {
             </h3>
             <div className="grid grid-cols-3 lg:grid-cols-1 gap-2 sm:gap-3">
               {downloadOptions.map((opt, i) => (
-                <button 
-                  key={i} 
+                <button
+                  key={i}
                   onClick={() => handleDownload(opt.type)}
                   className="w-full group flex flex-col lg:flex-row items-center lg:justify-between p-3 sm:p-4 rounded-xl sm:rounded-2xl bg-white/5 border border-white/5 hover:bg-white/10 hover:border-white/10 transition-all text-center lg:text-left gap-2"
                 >
@@ -345,7 +335,7 @@ const CEPResults = ({ data, onBack }) => {
                     </div>
                     <div>
                       <p className="text-[10px] sm:text-xs font-bold text-white">{opt.label}</p>
-                      <p className="text-[9px] sm:text-[10px] text-gray-500 hidden lg:block">Documento oficial</p>
+
                     </div>
                   </div>
                   <ChevronRight size={14} className="text-gray-600 group-hover:text-white transition-colors hidden lg:block" />
@@ -353,7 +343,7 @@ const CEPResults = ({ data, onBack }) => {
               ))}
             </div>
           </div>
-          
+
           {/* Verification QR Card (Disabled por ahora) */}
           {/*
           <div className="bg-gradient-to-br from-blue-600 to-indigo-800 rounded-2xl sm:rounded-[2rem] p-6 sm:p-8 shadow-xl shadow-blue-900/20 text-center relative overflow-hidden group">

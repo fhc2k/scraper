@@ -196,22 +196,32 @@ class FreeCaptchaBypassProvider extends CaptchaSolverProvider {
 
 		// Poll for result
 		let attempts = 0;
-		while (attempts < 30) {
-			await new Promise(r => setTimeout(r, 2000));
-			const resultRes = await fetch('https://freecaptchabypass.com/getTaskResult', {
-				method: 'POST',
-				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify({ clientKey: this.apiKey, taskId }),
-			});
-			const resultData = await resultRes.json();
+		while (attempts < 60) {
+			console.log(`[${this.name}] Polling for solution (attempt ${attempts + 1})...`);
+			await new Promise(r => setTimeout(r, 1000));
+			try {
+				const resultRes = await fetch('https://freecaptchabypass.com/getTaskResult', {
+					method: 'POST',
+					headers: { 'Content-Type': 'application/json' },
+					body: JSON.stringify({ clientKey: this.apiKey, taskId }),
+				});
+				const resultData = await resultRes.json();
+				console.log(`[${this.name}] getTaskResult response:`, JSON.stringify(resultData));
 
-			if (resultData.status === 'ready') {
-				const text = resultData.solution?.text || '';
-				console.log(`[${this.name}] Solved: "${text}"`);
-				return text;
-			}
-			if (resultData.status === 'failed') {
-				throw new Error(`FreeCaptchaBypass task failed: ${resultData.errorDescription || 'Unknown'}`);
+				if (resultData.status === 'ready' || (resultData.errorId === 0 && resultData.solution?.text)) {
+					const text = resultData.solution?.text || '';
+					console.log(`[${this.name}] Solved: "${text}"`);
+					return text;
+				}
+				if (resultData.errorId && resultData.errorId !== 0) {
+					throw new Error(`FreeCaptchaBypass task error: ${resultData.errorDescription || resultData.errorCode || 'Unknown'}`);
+				}
+				if (resultData.status === 'failed') {
+					throw new Error(`FreeCaptchaBypass task failed: ${resultData.errorDescription || 'Unknown'}`);
+				}
+			} catch (err) {
+				console.error(`[${this.name}] Polling error: ${err.message}`);
+				if (attempts > 5) throw err; // Don't crash immediately on first network hiccup
 			}
 			attempts++;
 		}

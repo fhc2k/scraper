@@ -15,13 +15,7 @@ const APIDocs = () => {
 
   const API_URL = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
 
-  const curlExample = `curl -X GET "${API_URL}/api/cep?\\
-  fecha=06-04-2026&\\
-  referencia=1234567&\\
-  emisor=40012&\\
-  receptor=40002&\\
-  cuentaBeneficiaria=012345678901234567&\\
-  monto=1500.00"`;
+  const curlExample = `curl -X GET "${API_URL}/api/cep?fecha=06-04-2026&referencia=1234567&emisor=40012&receptor=40002&cuentaBeneficiaria=012345678901234567&monto=1500`;
 
   const jsExample = `const response = await fetch('/api/cep?' + new URLSearchParams({
   fecha: '06-04-2026',
@@ -29,7 +23,7 @@ const APIDocs = () => {
   emisor: '40012',        // BBVA
   receptor: '40002',      // BANAMEX
   cuentaBeneficiaria: '012345678901234567',
-  monto: '1500.00'
+  monto: '1500'
 }));
 
 const data = await response.json();
@@ -43,7 +37,7 @@ params = {
     "emisor": "40012",
     "receptor": "40002",
     "cuentaBeneficiaria": "012345678901234567",
-    "monto": "1500.00"
+    "monto": "1500"
 }
 
 response = requests.get("${API_URL}/api/cep", params=params)
@@ -57,7 +51,7 @@ print(response.json())`;
     "estado": "LIQUIDADO",
     "fecha_operacion": "2026-04-06",
     "clave_rastreo": "CEP1712444800000",
-    "monto": "1500.00",
+    "monto": "1500",
     "banco_emisor": "BBVA MÉXICO",
     "banco_receptor": "BANAMEX",
     "cuenta_beneficiario": "012345678901234567",
@@ -162,11 +156,10 @@ print(response.json())`;
                 <button
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id)}
-                  className={`px-3 py-1 rounded-md text-[10px] font-bold transition-all ${
-                    activeTab === tab.id
-                      ? 'bg-blue-500/20 text-blue-400'
-                      : 'text-gray-500 hover:text-gray-300'
-                  }`}
+                  className={`px-3 py-1 rounded-md text-[10px] font-bold transition-all ${activeTab === tab.id
+                    ? 'bg-blue-500/20 text-blue-400'
+                    : 'text-gray-500 hover:text-gray-300'
+                    }`}
                 >
                   {tab.label}
                 </button>
@@ -189,7 +182,7 @@ print(response.json())`;
         {/* Responses */}
         <div className="px-4 sm:px-6 py-5">
           <h4 className="text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-4">Respuestas</h4>
-          
+
           <div className="space-y-4">
             {/* Success */}
             <div>

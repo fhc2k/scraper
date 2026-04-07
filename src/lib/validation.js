@@ -21,7 +21,6 @@ export const cepSchema = yup.object().shape({
     .matches(/^\d{18}$/, 'Debe ser una CLABE de 18 dígitos'),
   monto: yup.string()
     .required('El monto es obligatorio')
-    .transform((value) => value ? value.replace(/,/g, '') : '')
-    .test('is-number', 'El monto debe ser un número válido', (value) => !isNaN(parseFloat(value)))
-    .test('is-positive', 'El monto debe ser mayor a 0', (value) => parseFloat(value) > 0),
+    .matches(/^\d+$/, 'El monto debe ser un número entero sin comas ni puntos (ej. 9000)')
+    .test('is-positive', 'El monto debe ser mayor a 0', (value) => parseInt(value, 10) > 0),
 });
