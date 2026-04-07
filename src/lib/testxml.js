@@ -5,12 +5,12 @@ const xml = `<?xml version="1.0" encoding="UTF-8"?>
 </SPEI_Tercero>`;
 
 const getAttr = (xml, tag, attr) => {
-  const regex = new RegExp(`<${tag}[^>]*\\s+${attr}="([^"]*)"`, 'i');
-  const match = xml.match(regex);
-  return match ? match[1].trim() : '';
+    const regex = new RegExp(`<${tag}[^>]*\\s+${attr}="([^"]*)"`, "i");
+    const match = xml.match(regex);
+    return match ? match[1].trim() : "";
 };
 
-console.log('ID:', getAttr(xml, 'SPEI_Tercero', 'claveRastreo'));
-console.log('Fecha:', getAttr(xml, 'SPEI_Tercero', 'FechaOperacion'));
-console.log('Monto:', getAttr(xml, 'Beneficiario', 'MontoPago'));
-console.log('RFC:', getAttr(xml, 'Ordenante', 'RFC'));
+console.log("ID:", getAttr(xml, "SPEI_Tercero", "claveRastreo"));
+console.log("Fecha:", getAttr(xml, "SPEI_Tercero", "FechaOperacion"));
+console.log("Monto:", getAttr(xml, "Beneficiario", "MontoPago"));
+console.log("RFC:", getAttr(xml, "Ordenante", "RFC"));

@@ -1,26 +1,37 @@
-import * as yup from 'yup';
-import { MEXICAN_BANKS } from './constants';
+import * as yup from "yup";
+import { MEXICAN_BANKS } from "./constants";
 
-const bankIds = MEXICAN_BANKS.map(b => b.id);
+const bankIds = MEXICAN_BANKS.map((b) => b.id);
 
 export const cepSchema = yup.object().shape({
-  fecha: yup.string()
-    .required('La fecha es obligatoria'),
-  referencia: yup.string()
-    .required('La referencia es obligatoria')
-    .min(1, 'Referencia no válida'),
-  emisor: yup.string()
-    .required('El banco emisor es obligatorio')
-    .oneOf(bankIds, 'Banco emisor no válido'),
-  receptor: yup.string()
-    .required('El banco receptor es obligatorio')
-    .oneOf(bankIds, 'Banco receptor no válido'),
-  cuentaBeneficiaria: yup.string()
-    .required('La cuenta es obligatoria')
-    .transform((value) => value ? value.replace(/\s+/g, '') : '')
-    .matches(/^\d{18}$/, 'Debe ser una CLABE de 18 dígitos'),
-  monto: yup.string()
-    .required('El monto es obligatorio')
-    .matches(/^\d+$/, 'El monto debe ser un número entero sin comas ni puntos (ej. 9000)')
-    .test('is-positive', 'El monto debe ser mayor a 0', (value) => parseInt(value, 10) > 0),
+    fecha: yup.string().required("La fecha es obligatoria"),
+    referencia: yup
+        .string()
+        .required("La referencia es obligatoria")
+        .min(1, "Referencia no válida"),
+    emisor: yup
+        .string()
+        .required("El banco emisor es obligatorio")
+        .oneOf(bankIds, "Banco emisor no válido"),
+    receptor: yup
+        .string()
+        .required("El banco receptor es obligatorio")
+        .oneOf(bankIds, "Banco receptor no válido"),
+    cuentaBeneficiaria: yup
+        .string()
+        .required("La cuenta es obligatoria")
+        .transform((value) => (value ? value.replace(/\s+/g, "") : ""))
+        .matches(/^\d{18}$/, "Debe ser una CLABE de 18 dígitos"),
+    monto: yup
+        .string()
+        .required("El monto es obligatorio")
+        .matches(
+            /^\d+$/,
+            "El monto debe ser un número entero sin comas ni puntos (ej. 9000)",
+        )
+        .test(
+            "is-positive",
+            "El monto debe ser mayor a 0",
+            (value) => parseInt(value, 10) > 0,
+        ),
 });
