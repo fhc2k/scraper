@@ -268,6 +268,19 @@ const CEPResults = ({ data, onBack }) => {
                     <span className="flex items-center gap-1.5"><ShieldCheck size={12} className="text-blue-500" /> Banxico SPEI</span>
                     <span className="hidden sm:block w-1 h-1 bg-gray-700 rounded-full" />
                     <span>Serie: <span className="text-gray-300 font-mono">#{data.id_transaccion}</span></span>
+                    {data.syncStatus && (
+                      <>
+                        <span className="hidden sm:block w-1 h-1 bg-gray-700 rounded-full" />
+                        <span className={cn(
+                          "px-2 py-0.5 rounded-md font-bold uppercase tracking-wider text-[8px] sm:text-[9px]",
+                          data.syncStatus === 'caché' ? 'bg-blue-500/20 text-blue-400' : 
+                          data.syncStatus === 'sincronización' ? 'bg-purple-500/20 text-purple-400' :
+                          'bg-emerald-500/20 text-emerald-400'
+                        )}>
+                          {data.syncStatus}
+                        </span>
+                      </>
+                    )}
                   </div>
                 </div>
               </div>

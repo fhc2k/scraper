@@ -1,10 +1,29 @@
 import { NextResponse } from 'next/server';
 import { cepSchema } from '@/lib/validation';
-// Removed static import to fix build issues
+import applyRateLimit from '@/lib/rateLimit';
 
 export async function GET(request) {
 	try {
 		const { searchParams } = new URL(request.url);
+
+		// ── PHASE 5: Rate Limiting & API Key Security ──
+		const rateLimit = applyRateLimit(request, 10, 60000); // 10 reqs per minute
+		if (!rateLimit.success) {
+			return NextResponse.json({
+				success: false,
+				message: 'Demasiadas peticiones (Rate Limit). Por favor, intenta de nuevo en un minuto.',
+			}, { status: 429 });
+		}
+
+		const clientApiKey = request.headers.get('x-api-key') || searchParams.get('api_key');
+		const serverApiKey = process.env.API_KEY;
+
+		if (serverApiKey && clientApiKey !== serverApiKey) {
+			return NextResponse.json({
+				success: false,
+				message: 'No autorizado. API Key inválida o faltante.',
+			}, { status: 401 });
+		}
 
 		// Extract parameters from query string
 		const queryData = {
@@ -41,8 +60,53 @@ export async function GET(request) {
 
 		let responseData;
 
+		// ── PHASE 3: Cache-First Logic ──
+		try {
+			const { findExistingCEP } = await import('@/lib/db');
+			const cachedResult = await findExistingCEP(queryData);
+			
+			if (cachedResult) {
+				const SIX_HOURS = 6 * 60 * 60 * 1000;
+				const isOld = (Date.now() - new Date(cachedResult.last_sync || 0).getTime()) > SIX_HOURS;
+
+				if (!isOld) {
+					console.log('[API] Cache Hit! Returning stored CEP data.');
+					cachedResult.syncStatus = 'caché';
+					return NextResponse.json({
+						success: true,
+						message: 'CEP recuperado de la base de datos (Cache Hit)',
+						data: cachedResult,
+						isCached: true
+					}, { status: 200 });
+				} else {
+					console.log('[API] Cache Expired (> 6 hours). Resyncing with provider...');
+					queryData._isResync = true;
+				}
+			}
+		} catch (dbError) {
+			console.warn('[API] Database cache check failed or not configured:', dbError.message);
+			// Continue without cache if DB is not ready
+		}
+
+		const webhookUrl = searchParams.get('webhook_url');
+
 		try {
 			if (useRealScraper) {
+				if (webhookUrl) {
+					console.log(`[API] Webhook requested. Dispatching background worker for ${webhookUrl}`);
+					const { triggerWebhookJob } = await import('@/lib/webhookWorker');
+					
+					// Fire and forget background job
+					triggerWebhookJob(queryData, captchaConfig, webhookUrl).catch(console.error);
+
+					return NextResponse.json({
+						success: true,
+						status: 'processing',
+						message: 'La consulta tomará entre 70 y 90 segundos. Los resultados se enviarán al webhook proporcionado.',
+						job_id: queryData.referencia
+					}, { status: 202 });
+				}
+
 				console.log('--- EXECUTING REAL SCRAPER ---');
 				const { scrapeCEP } = await import('@/lib/scraper');
 				const scraperResult = await scrapeCEP(queryData, captchaConfig);
@@ -50,6 +114,16 @@ export async function GET(request) {
 					throw new Error(scraperResult.error || 'Scraper failed without error message');
 				}
 				responseData = scraperResult.data;
+				responseData.syncStatus = queryData._isResync ? 'sincronización' : 'consulta inicial';
+
+				// ── PHASE 3: Save to DB ──
+				try {
+					const { saveCEP } = await import('@/lib/db');
+					await saveCEP({ ...responseData, ...queryData });
+				} catch (saveError) {
+					console.warn('[API] Failed to save CEP to database:', saveError.message);
+				}
+
 			} else {
 				// Mock fallback for development
 				await new Promise(resolve => setTimeout(resolve, 800));
@@ -61,7 +135,8 @@ export async function GET(request) {
 					banco_receptor: 'BANAMEX',
 					clave_rastreo: `CEP${Date.now()}`,
 					fecha_validacion: new Date().toISOString(),
-					isMock: true
+					isMock: true,
+					syncStatus: queryData._isResync ? 'sincronización' : 'consulta inicial'
 				};
 			}
 		} catch (scraperError) {

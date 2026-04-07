@@ -7,10 +7,12 @@ import { Search } from 'lucide-react';
 import CEPForm from '@/components/CEPForm';
 import CEPResults from '@/components/CEPResults';
 import APIDocs from '@/components/APIDocs';
+import HistoryDashboard from '@/components/HistoryDashboard';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 
 export default function Home() {
+  const [activeTab, setActiveTab] = useState('new'); // 'new', 'history'
   const [queryStatus, setQueryStatus] = useState('idle'); // 'idle', 'submitting', 'result'
   const [resultData, setResultData] = useState(null);
   const [mounted, setMounted] = useState(false);
@@ -52,6 +54,12 @@ export default function Home() {
     setQueryStatus('idle');
   };
 
+  const handleHistorySelect = (data) => {
+    // Treat historical selection exactly like a successful result
+    setResultData(data);
+    setQueryStatus('result');
+  };
+
   if (!mounted) return <div className="bg-[#050505] min-h-screen" />;
 
   return (
@@ -60,26 +68,61 @@ export default function Home() {
 
       <main className="flex-1 flex items-start justify-center px-4 sm:px-6 py-10">
         <div className="w-full max-w-3xl">
-          {/* Form — always mounted, hidden when loading/results */}
+          {/* Top Level Tabs */}
+          {queryStatus === 'idle' && (
+            <div className="flex bg-[#111] p-1 rounded-2xl border border-white/10 mb-8 max-w-[280px] mx-auto shadow-2xl relative z-10">
+              <button
+                onClick={() => setActiveTab('new')}
+                className={`flex-1 py-1.5 text-xs sm:text-sm font-bold rounded-xl transition-all ${activeTab === 'new' ? 'bg-white/10 text-white shadow-lg' : 'text-gray-500 hover:text-gray-300'}`}
+              >
+                Nueva Consulta
+              </button>
+              <button
+                onClick={() => setActiveTab('history')}
+                className={`flex-1 py-1.5 text-xs sm:text-sm font-bold rounded-xl transition-all ${activeTab === 'history' ? 'bg-white/10 text-white shadow-lg' : 'text-gray-500 hover:text-gray-300'}`}
+              >
+                Historial
+              </button>
+            </div>
+          )}
+
+          {/* Form / History Dashboard — always mounted, hidden when loading/results */}
           <div className={queryStatus !== 'idle' ? 'hidden' : ''}>
-            <motion.div
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-            >
-              {/* Header */}
-              <div className="text-center mb-10">
-                <h2 className="text-3xl font-bold tracking-tight bg-gradient-to-r from-white to-gray-400 bg-clip-text text-transparent">
-                  Consulta de Pago SPEI
-                </h2>
-                <p className="text-sm text-gray-500 mt-2 max-w-md mx-auto">
-                  Valida tu Comprobante Electrónico de Pago ingresando los datos de tu transacción
-                </p>
-              </div>
+            <AnimatePresence mode="wait">
+              {activeTab === 'new' ? (
+                <motion.div
+                  key="new-query"
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, scale: 0.98 }}
+                  transition={{ duration: 0.3 }}
+                >
+                  {/* Header */}
+                  <div className="text-center mb-10">
+                    <h2 className="text-3xl font-bold tracking-tight bg-gradient-to-r from-white to-gray-400 bg-clip-text text-transparent">
+                      Consulta de Pago SPEI
+                    </h2>
+                    <p className="text-sm text-gray-500 mt-2 max-w-md mx-auto">
+                      Valida tu Comprobante Electrónico de Pago ingresando los datos de tu transacción
+                    </p>
+                  </div>
 
-              <CEPForm onSubmit={handleFormSubmit} />
+                  <CEPForm onSubmit={handleFormSubmit} />
 
-              <APIDocs />
-            </motion.div>
+                  <APIDocs />
+                </motion.div>
+              ) : (
+                <motion.div
+                  key="history-dashboard"
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, scale: 0.98 }}
+                  transition={{ duration: 0.3 }}
+                >
+                  <HistoryDashboard onSelect={handleHistorySelect} />
+                </motion.div>
+              )}
+            </AnimatePresence>
           </div>
 
           {/* Loading / Results — animated */}
