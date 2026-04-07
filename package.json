@@ -12,6 +12,7 @@
     "@hookform/resolvers": "^5.2.2",
     "@zennolab_com/capmonstercloud-client": "^2.6.1",
     "2captcha": "^3.0.5-2",
+    "bullmq": "^5.73.0",
     "clsx": "^2.1.1",
     "framer-motion": "^12.38.0",
     "ioredis": "^5.10.1",

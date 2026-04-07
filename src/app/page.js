@@ -35,6 +35,18 @@ export default function Home() {
         toast.success('Consulta exitosa', {
           description: 'El comprobante electrónico de pago fue validado correctamente.',
         });
+
+        // ── SAVE TO PRIVATE LOCAL HISTORY ──
+        try {
+          const currentHistory = JSON.parse(localStorage.getItem('cepHistory') || '[]');
+          const newHistoryItem = { ...result.data, _local_timestamp: Date.now() };
+          // Remove duplicates of the same transaction ID
+          const filteredHistory = currentHistory.filter(h => h.id_transaccion !== result.data.id_transaccion);
+          filteredHistory.unshift(newHistoryItem);
+          localStorage.setItem('cepHistory', JSON.stringify(filteredHistory.slice(0, 15)));
+        } catch (e) {
+          console.warn('Failed to save history to local storage', e);
+        }
       } else {
         toast.error('Error en la consulta', {
           description: result.message || 'No se pudo procesar la solicitud. Verifica los datos e intenta de nuevo.',

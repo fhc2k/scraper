@@ -4,21 +4,20 @@ import CepQuery from '@/models/CepQuery';
 
 export async function GET(request) {
 	try {
-        // Enforce basic security check
-        const clientApiKey = request.headers.get('x-api-key') || new URL(request.url).searchParams.get('api_key');
-        const serverApiKey = process.env.API_KEY;
+		const clientApiKey = request.headers.get('x-api-key') || new URL(request.url).searchParams.get('api_key');
+		const serverApiKey = process.env.API_KEY;
 
-        if (serverApiKey && clientApiKey !== serverApiKey) {
-            return NextResponse.json({ success: false, message: 'No autorizado.' }, { status: 401 });
-        }
+		if (serverApiKey && clientApiKey !== serverApiKey) {
+			return NextResponse.json({ success: false, message: 'No autorizado.' }, { status: 401 });
+		}
 
 		await dbConnect();
-		
-        // Fetch the 15 most recent successful transactions
+
+		// Fetch the 15 most recent successful transactions
 		const history = await CepQuery.find()
-            .sort({ createdAt: -1 })
-            .limit(15)
-            .lean();
+			.sort({ createdAt: -1 })
+			.limit(15)
+			.lean();
 
 		return NextResponse.json({
 			success: true,

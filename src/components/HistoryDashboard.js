@@ -9,19 +9,20 @@ export default function HistoryDashboard({ onSelect }) {
     const [history, setHistory] = useState([]);
     const [loading, setLoading] = useState(true);
 
-    const fetchHistory = async () => {
+    const fetchHistory = () => {
         setLoading(true);
         try {
-            const res = await fetch('/api/history');
-            const result = await res.json();
-            if (result.success) {
-                setHistory(result.data);
+            // Read from private local storage instead of global database
+            const storedHistory = localStorage.getItem('cepHistory');
+            if (storedHistory) {
+                setHistory(JSON.parse(storedHistory));
             } else {
-                toast.error('No autorizado para ver el historial');
+                setHistory([]);
             }
         } catch (error) {
-            console.error('Error fetching history:', error);
-            toast.error('Error de red al cargar el historial');
+            console.error('Error fetching private history:', error);
+            toast.error('Error leyendo la memoria local');
+            setHistory([]);
         } finally {
             setLoading(false);
         }
@@ -96,7 +97,7 @@ export default function HistoryDashboard({ onSelect }) {
                             <div className="flex items-center justify-between sm:justify-end w-full sm:w-auto gap-4 mt-2 sm:mt-0 px-2 sm:px-0">
                                 <div className="flex items-center gap-1.5 text-[10px] text-gray-500 whitespace-nowrap">
                                     <Clock size={12} />
-                                    {new Date(item.last_sync || item.createdAt).toLocaleString('es-MX', {
+                                    {new Date(item._local_timestamp || item.last_sync || item.createdAt).toLocaleString('es-MX', {
                                         month: 'short', day: '2-digit', hour: '2-digit', minute: '2-digit'
                                     })}
                                 </div>

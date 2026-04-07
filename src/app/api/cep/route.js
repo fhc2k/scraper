@@ -7,7 +7,7 @@ export async function GET(request) {
 		const { searchParams } = new URL(request.url);
 
 		// ── PHASE 5: Rate Limiting & API Key Security ──
-		const rateLimit = applyRateLimit(request, 10, 60000); // 10 reqs per minute
+		const rateLimit = await applyRateLimit(request, 10, 60000); // 10 reqs per minute
 		if (!rateLimit.success) {
 			return NextResponse.json({
 				success: false,
@@ -25,7 +25,6 @@ export async function GET(request) {
 			}, { status: 401 });
 		}
 
-		// Extract parameters from query string
 		const queryData = {
 			fecha: searchParams.get('fecha'),
 			referencia: searchParams.get('referencia'),
@@ -64,7 +63,7 @@ export async function GET(request) {
 		try {
 			const { findExistingCEP } = await import('@/lib/db');
 			const cachedResult = await findExistingCEP(queryData);
-			
+
 			if (cachedResult) {
 				const SIX_HOURS = 6 * 60 * 60 * 1000;
 				const isOld = (Date.now() - new Date(cachedResult.last_sync || 0).getTime()) > SIX_HOURS;
@@ -94,10 +93,21 @@ export async function GET(request) {
 			if (useRealScraper) {
 				if (webhookUrl) {
 					console.log(`[API] Webhook requested. Dispatching background worker for ${webhookUrl}`);
-					const { triggerWebhookJob } = await import('@/lib/webhookWorker');
-					
-					// Fire and forget background job
-					triggerWebhookJob(queryData, captchaConfig, webhookUrl).catch(console.error);
+					const { cepQueue } = await import('@/lib/queue');
+
+					if (cepQueue) {
+						// ── BULLMQ: Enterprise distributed robust queue ──
+						await cepQueue.add('scrape-job', { queryData, captchaConfig, webhookUrl }, {
+							attempts: 3,
+							backoff: { type: 'exponential', delay: 10000 },
+							removeOnComplete: true
+						});
+						console.log(`[BULLMQ] 📥 Job enqueued securely.`);
+					} else {
+						// ── FALLBACK: Node.js memory fire-and-forget ──
+						const { triggerWebhookJob } = await import('@/lib/webhookWorker');
+						triggerWebhookJob(queryData, captchaConfig, webhookUrl).catch(console.error);
+					}
 
 					return NextResponse.json({
 						success: true,

@@ -1,36 +1,93 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://github.com/vercel/next.js/tree/canary/packages/create-next-app).
+# 🏦 Banxico CEP API & Scraper - Enterprise Edition
 
-## Getting Started
+![Next.js](https://img.shields.io/badge/Next.js-14-black)
+![MongoDB](https://img.shields.io/badge/MongoDB-Mongoose-green)
+![Redis](https://img.shields.io/badge/Redis-Upstash-red)
+![BullMQ](https://img.shields.io/badge/BullMQ-Queues-blue)
+![Puppeteer](https://img.shields.io/badge/Puppeteer-Stealth-green)
 
-First, run the development server:
+Una plataforma de grado empresarial para validar, cachear y descargar Comprobantes Electrónicos de Pago (CEP) del Banco de México (Banxico), diseñada para escalar mediante flujos asíncronos distribuidos.
 
+---
+
+## 🌟 Arquitectura SaaS (Nivel Enterprise)
+
+Este proyecto no es un simple scraper web; es una arquitectura backend completa diseñada para entornos distribuidos (Vercel, Railway, AWS):
+
+### 1. Caché Multinivel (L1 / L2) ⚡
+Para optimizar los tiempos de la API de Banxico (que normalmente tardan entre 60 y 90 segundos), diseñamos una estructura jerárquica de caché mediante un sistema de huellas digitales exclusivas (Fingerprinting):
+*   **Layer 1 (Redis):** Almacenamientos ultra-rápidos Clave-Valor (KV). Las búsquedas cacheadas en los últimos minutos se sirven directamente desde la memoria RAM en ~1 milisegundo.
+*   **Layer 2 (MongoDB):** Almacenaje persistente. Si Redis falla o expira tras 6 horas, la transacción se rescata desde MongoDB para evitar golpear la infraestructura de Banxico.
+
+### 2. Procesamiento Asíncrono (Webhooks + BullMQ) 🐂
+Implementación de un sistema **Opt-In** para B2B. Si envías la variable `webhook_url` en la petición:
+*   La API responderá instantáneamente un `HTTP 202 Accepted`.
+*   El trabajo se delegará a **BullMQ** (Colas de Redis), que despachará la solicitud en segundo plano.
+*   Si Banxico falla, el **Worker implementa Backoff Exponencial**, reintentando la tarea un máximo de 3 veces (esperando 10s, 20s y 40s) para sobrevivir a caídas y entregar el Payload al cliente final sin perder el trabajo si ocurre un Server Crash.
+
+### 3. Seguridad Perimetral y Limitadores (Rate Limiting) 🛡️
+*   **API Keys:** El endpoint principal está protegido por variables de entorno requiriendo `x-api-key` headers para prevenir uso no autorizado B2B.
+*   **Rate Limiter:** Limitador de memoria de IPs (max 10 peticiones por minuto por IP) con degradación elegante de Redis Distribuido a Mapas Locales de Node.js en caso de desconexión.
+*   **Privacidad (Local Storage):** El Dashboard principal implementa almacenamiento en el navegador, asegurando que el Historial de CEPs sea completamente privado por usuario/sesión sin requerir un complejo servidor de Auth.
+
+---
+
+## 🛠️ Tecnologías Principales
+*   **Frontend:** Next.js 14 (App Router), React, Tailwind CSS, Framer Motion, Lucide Icons.
+*   **Backend:** Node.js, Mongoose (MongoDB).
+*   **Scraping:** Puppeteer Extra (Plugin Stealth para evadir bloqueos de robots).
+*   **Microservicios:** ioredis, BullMQ (Gestión de Colas).
+*   **Validación:** Yup, React Hook Form.
+
+---
+
+## ⚙️ Instalación y Uso
+
+### 1. Requisitos Previos
+*   [Node.js](https://nodejs.org/es/) (v18+)
+*   Base de datos MongoDB (Local o Atlas/Railway)
+*   *(Opcional pero recomendado)* Redis Instancia (Ej. Upstash o Railway)
+
+### 2. Configurar Variables de Entorno (`.env`)
+Clona el repositorio e instala las dependencias:
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+git clone https://github.com/tu-usuario/cep-scraper.git
+cd cep-scraper
+npm install
+```
+Crea un archivo `.env` en la raíz basado en este ejemplo:
+```env
+DATABASE_URL="mongodb+srv://..."
+# Opcionales para habilitar el Modo Enterprise
+REDIS_URL="redis://..."
+API_KEY="tu_llave_secreta_comercial"
+ENABLE_GAMIFICATION="true"
+ENABLE_SCRAPER="true"
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+### 3. Ejecutar Proyecto
+```bash
+npm run dev
+```
 
-You can start editing the page by modifying `app/page.js`. The page auto-updates as you edit the file.
+---
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## 🌐 Pruebas de API (Modo Webhook)
 
-## Learn More
+Puedes interactuar con nuestro sistema como un servicio B2B:
 
-To learn more about Next.js, take a look at the following resources:
+```bash
+curl -X GET "http://localhost:3000/api/cep?monto=50000&cuentaBeneficiaria=123...&receptor=40012&emisor=90653&referencia=123123&fecha=12-08-2024&webhook_url=https://webhook.site/tu_URL_personalizada" \
+-H "x-api-key: tu_llave_secreta_comercial"
+```
+**Respuesta:**
+```json
+{
+  "status": "processing",
+  "message": "La consulta tomará entre 70 y 90 segundos. Los resultados se enviarán al webhook proporcionado."
+}
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+---
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+> Desplegado con orgullo como caso de estudio de arquitectura backend distribuida y prevención de cuellos de botella en infraestructuras legacy.

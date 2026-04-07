@@ -1,8 +1,31 @@
+import redisClient from '@/lib/redis';
+
 const rateLimitMap = new Map();
 
-export default function applyRateLimit(request, limit = 5, windowMs = 60000) {
+export default async function applyRateLimit(request, limit = 5, windowMs = 60000) {
     const ip = request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || '127.0.0.1';
 
+    // ── DISTRIBUTED CACHE CLOUD LIMITING (REDIS) ──
+    if (redisClient) {
+        try {
+            const key = `ratelimit:${ip}`;
+            const currentCount = await redisClient.incr(key);
+            
+            if (currentCount === 1) {
+                // Expire key after windowMs (milliseconds)
+                await redisClient.pexpire(key, windowMs);
+            }
+            
+            if (currentCount > limit) {
+                return { success: false, remaining: 0, limit };
+            }
+            return { success: true, remaining: limit - currentCount, limit };
+        } catch (error) {
+            console.warn('[REDIS] Fallback to memory local limiting due to error:', error.message);
+        }
+    }
+    
+    // ── LOCAL SERVER LOCAL MEMORY LIMITING ──
     if (rateLimitMap.size > 1000) {
         const now = Date.now();
         for (const [key, val] of rateLimitMap.entries()) {

@@ -1,6 +1,7 @@
 import mongoose from 'mongoose';
 import crypto from 'crypto';
 import CepQuery from '@/models/CepQuery';
+import redisClient from '@/lib/redis';
 
 const MONGODB_URI = process.env.DATABASE_URL;
 
@@ -69,6 +70,21 @@ export async function findExistingCEP(query) {
 
     // 2. Try match by the query parameters fingerprint
     const fingerprint = generateFingerprint(query);
+
+    // ── LAYER 1: ULTRA FAST REDIS CACHE ──
+    if (redisClient) {
+        try {
+            const cachedStr = await redisClient.get(`cep_cache:${fingerprint}`);
+            if (cachedStr) {
+                console.log('[DB] ⚡ Redis Ultra-Fast Cache Hit!');
+                return JSON.parse(cachedStr);
+            }
+        } catch (e) {
+            console.warn('[REDIS] Cache read failed, falling back to Mongo:', e.message);
+        }
+    }
+
+    // ── LAYER 2: MONGODB PERSISTENT CACHE ──
     const existing = await CepQuery.findOne({ fingerprint }).lean();
 
     return existing;
@@ -96,9 +112,20 @@ export async function saveCEP(data) {
         last_sync: Date.now()
       },
       { upsert: true, new: true }
-    );
+    ).lean();
 
-    console.log('[DB] CEP Saved/Updated successfully:', saved._id);
+    // ── SAVE TO REDIS CACHE (TTL 6 HOURS) ──
+    if (redisClient) {
+        try {
+            // 6 hours * 60 minutes * 60 seconds = 21600 seconds
+            await redisClient.setex(`cep_cache:${fingerprint}`, 21600, JSON.stringify(saved));
+            console.log('[REDIS] 💾 Cached successful response for 6 hours.');
+        } catch(e) {
+            console.warn('[REDIS] Failed to write cache:', e.message);
+        }
+    }
+
+    console.log('[DB] CEP Saved/Updated successfully:', saved._id || fingerprint);
     return saved;
   } catch (error) {
     console.error('[DB] Error saving CEP:', error);
