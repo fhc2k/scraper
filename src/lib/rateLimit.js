@@ -5,14 +5,15 @@ const rateLimitMap = new Map();
 export default async function applyRateLimit(request, limit = 5, windowMs = 60000) {
     const ip = request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || '127.0.0.1';
 
-    // ── DISTRIBUTED CACHE CLOUD LIMITING (REDIS) ──
+    // ── DISTRIBUTED CLOUD LIMITING (UPSTASH REST) ──
     if (redisClient) {
         try {
             const key = `ratelimit:${ip}`;
+            // Upstash REST handles incr/pexpire normally
             const currentCount = await redisClient.incr(key);
             
             if (currentCount === 1) {
-                // Expire key after windowMs (milliseconds)
+                // pexpire: sets expiration in milliseconds
                 await redisClient.pexpire(key, windowMs);
             }
             
@@ -21,11 +22,11 @@ export default async function applyRateLimit(request, limit = 5, windowMs = 6000
             }
             return { success: true, remaining: limit - currentCount, limit };
         } catch (error) {
-            console.warn('[REDIS] Fallback to memory local limiting due to error:', error.message);
+            console.warn('[REDIS-REST] Fallback to memory due to error:', error.message);
         }
     }
     
-    // ── LOCAL SERVER LOCAL MEMORY LIMITING ──
+    // ── LOCAL MEMORY LIMITING (FALLBACK) ──
     if (rateLimitMap.size > 1000) {
         const now = Date.now();
         for (const [key, val] of rateLimitMap.entries()) {
@@ -61,3 +62,4 @@ export default async function applyRateLimit(request, limit = 5, windowMs = 6000
 
     return { success: true, remaining: limit - requestData.count, limit };
 }
+

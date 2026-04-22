@@ -1,5 +1,5 @@
 import { Queue, Worker } from "bullmq";
-import IORedis from "ioredis";
+import { Redis } from "ioredis";
 import { triggerWebhookJob } from "@/lib/webhookWorker";
 
 const REDIS_URL = process.env.REDIS_URL;
@@ -8,16 +8,17 @@ export let cepQueue = null;
 export let cepWorker = null;
 
 if (REDIS_URL) {
-    // BullMQ requires maxRetriesPerRequest: null, so we create a dedicated robust connection
-    const connection = new IORedis(REDIS_URL, {
+    // BullMQ requires maxRetriesPerRequest: null, and a TCP connection (RESP)
+    // Upstash RESP requires TLS (rediss://), which ioredis handles automatically if the prefix is right
+    const connection = new Redis(REDIS_URL, {
         maxRetriesPerRequest: null,
     });
 
     if (!global.cepQueue) {
         global.cepQueue = new Queue("cep-scraping", { connection });
-        console.log("[BULLMQ] 🚀 Enterprise Message Queue Initialized");
+        console.log("[BULLMQ] 🚀 Hybrid Queue Initialized (via Upstash RESP)");
 
-        // Initialize the background worker that constantly listens to the queue
+        // Initialize the background worker
         global.cepWorker = new Worker(
             "cep-scraping",
             async (job) => {
@@ -32,7 +33,7 @@ if (REDIS_URL) {
         // Worker error logging
         global.cepWorker.on("failed", (job, err) => {
             console.error(
-                `[BULLMQ] ❌ Job ${job.id} completely failed after retries:`,
+                `[BULLMQ] ❌ Job ${job.id} failed:`,
                 err.message,
             );
         });
@@ -42,6 +43,7 @@ if (REDIS_URL) {
     cepWorker = global.cepWorker;
 } else {
     console.warn(
-        "[BULLMQ] ℹ️  No REDIS_URL provided. BullMQ Message Queue gracefully skipped.",
+        "[BULLMQ] ℹ️  No REDIS_URL provided. BullMQ Message Queue skipped.",
     );
 }
+

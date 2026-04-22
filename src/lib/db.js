@@ -157,22 +157,24 @@ export async function saveCEP(data) {
             { upsert: true, new: true },
         ).lean();
 
-        // ── SAVE TO REDIS CACHE (TTL 6 HOURS) ──
+        // ── SAVE TO UPSTASH REST CACHE (TTL 6 HOURS) ──
         if (redisClient) {
             try {
                 // 6 hours * 60 minutes * 60 seconds = 21600 seconds
+                // @upstash/redis supports setex for compatibility
                 await redisClient.setex(
                     `cep_cache:${fingerprint}`,
                     21600,
                     JSON.stringify(saved),
                 );
                 console.log(
-                    "[REDIS] 💾 Cached successful response for 6 hours.",
+                    "[REDIS] 💾 Cached successful response in Upstash for 6 hours.",
                 );
             } catch (e) {
-                console.warn("[REDIS] Failed to write cache:", e.message);
+                console.warn("[REDIS-REST] Failed to write cache:", e.message);
             }
         }
+
 
         console.log(
             "[DB] CEP Saved/Updated successfully:",

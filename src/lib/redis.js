@@ -1,25 +1,23 @@
-import { Redis } from 'ioredis';
+import { Redis } from '@upstash/redis';
 
-const REDIS_URL = process.env.REDIS_URL;
+const REST_URL = process.env.UPSTASH_REDIS_REST_URL;
+const REST_TOKEN = process.env.UPSTASH_REDIS_REST_TOKEN;
 
 let redisClient = null;
 
-if (REDIS_URL) {
-    // We use global to prevent memory leaks in Next.js during local development (HMR)
-    if (!global.redisClient) {
-        global.redisClient = new Redis(REDIS_URL, {
-            maxRetriesPerRequest: 3,
-            retryStrategy(times) {
-                if (times >= 3) return null; // Don't retry indefinitely
-                return Math.min(times * 50, 2000);
-            }
+if (REST_URL && REST_TOKEN) {
+    // Use global to maintain the client across HMR in dev
+    if (!global.upstashRestClient) {
+        global.upstashRestClient = new Redis({
+            url: REST_URL,
+            token: REST_TOKEN,
         });
-        console.log('[REDIS] 🚀 Enterprise Redis connection established!');
+        console.log('[REDIS] ⚡ Upstash REST client connection established!');
     }
-    redisClient = global.redisClient;
+    redisClient = global.upstashRestClient;
 } else {
-    // This is expected and safe! 
-    console.warn('[REDIS] ℹ️  No REDIS_URL provided. App is gracefully falling back to Memory & MongoDB.');
+    console.warn('[REDIS] ℹ️  Upstash REST credentials missing. Falling back to memory.');
 }
 
 export default redisClient;
+
